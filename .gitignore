@@ -1,0 +1,4 @@
+.venv/*
+reviews/data_mentah/csv/*
+reviews/data_mentah/txt/*
+reviews/filter/*
