@@ -48,10 +48,10 @@ class Labeling_UX_Reviews:
         msg = str(row['message']).lower()
         score = row['score']
 
-        if score >= 4:
-            if any(kyw in msg for kyw in ['bagus', 'baik', 'suka', 'puas', 'terbaik', 'mantap', 'mudah', 'praktis', 'cepat', 'efisien',
-                                          'memuaskan', 'user friendly', 'simpel', 'keren', 'membantu', 'rekomendasi', 'enak', 'berguna', 'cocok']):
-                return "Positive Feedback"
+        # if score >= 4:
+        #     if any(kyw in msg for kyw in ['bagus', 'baik', 'suka', 'puas', 'terbaik', 'mantap', 'mudah', 'praktis', 'cepat', 'efisien',
+        #                                   'memuaskan', 'user friendly', 'simpel', 'keren', 'membantu', 'rekomendasi', 'enak', 'berguna', 'cocok']):
+        #         return "Positive Feedback"
 
         for category, keywords in self.ux_keywords().items():
             for keyword in keywords:
@@ -105,4 +105,3 @@ if __name__ == "__main__":
 
         print(result)
         print(f"Processed {input_csv} -> Total label reviews: {len(labeled_df)} and saved to {output_csv}.")
-

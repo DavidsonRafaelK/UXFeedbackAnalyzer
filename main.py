@@ -72,10 +72,11 @@ class GooglePlayReviewScraper:
 if __name__ == "__main__":
     apps = [
         {"id": "com.telkomsel.telkomselcm", "name": "MyTelkomsel"},
-        {"id": "com.shopee.id", "name": "Shopee"},
-        {"id": "com.tokopedia.tkpd", "name": "Tokopedia"},
-        {"id": "com.ss.android.ugc.trill", "name": "TikTok"},
-        {"id": "id.bmri.livin", "name": "Livin Mandiri"},
+        # {"id": "com.shopee.id", "name": "Shopee"},
+        # {"id": "com.tokopedia.tkpd", "name": "Tokopedia"},
+        # {"id": "com.ss.android.ugc.trill", "name": "TikTok"},
+        # {"id": "id.bmri.livin", "name": "Livin Mandiri"},
+        # {"id": "com.pure.indosat.care", "name": "MyIM3"},
     ]
 
     for app in apps:

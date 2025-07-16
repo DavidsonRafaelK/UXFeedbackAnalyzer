@@ -6,11 +6,11 @@ import seaborn as sns
 data = {
     'ux_category': [
         'Benefit Issue', 'Connectivity Issue', 'Login Issue', 'Navigation Issue',
-        'Other UX Issue', 'Performance Issue', 'Positive Feedback', 'Technical Issue', 'Top Up Issue'
+        'Other UX Issue', 'Performance Issue', 'Technical Issue', 'Top Up Issue'
     ],
-    'Negative': [289, 8796, 1574, 550, 4687, 12788, 689, 6661, 393],
-    'Neutral': [86, 1048, 272, 118, 1247, 1549, 0, 969, 76],
-    'Positive': [396, 1177, 168, 114, 1703, 524, 6697, 401, 81]
+    'Negative': [299, 9078, 1586, 569, 4777, 13438, 6942, 412],
+    'Neutral': [86, 1117, 281, 134, 1375, 1630, 1024, 77],
+    'Positive': [818, 3018, 269, 294, 4667, 1406, 588, 333]
 }
 df = pd.DataFrame(data)
 
