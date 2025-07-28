@@ -1,0 +1,12 @@
+{
+  "total_reviews": 2368,
+  "sentiment_distribution": {
+    "Negative": 1325,
+    "Positive": 980,
+    "Neutral": 63
+  },
+  "average_confidence": 0.74453125,
+  "positive_percentage": 41.38513513513514,
+  "negative_percentage": 55.954391891891895,
+  "neutral_percentage": 2.660472972972973
+}

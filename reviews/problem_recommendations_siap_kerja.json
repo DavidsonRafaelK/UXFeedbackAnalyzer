@@ -1,37 +1,31 @@
 {
   "app_name": "SIAP Kerja",
-  "analysis_date": "2025-07-28T13:04:05.673019",
+  "analysis_date": "2025-07-28T13:32:32.065449",
   "overall_assessment": "URGENT: Aplikasi mengalami masalah serius dengan tingkat deteksi masalah 63.5%. Diperlukan tindakan segera.",
   "priority_actions": [
     {
       "category": "Login_Authentication",
       "action": "Perbaiki sistem autentikasi dan reset password",
       "urgency": "HIGH",
-      "affected_percentage": 13.39
+      "affected_percentage": 19.21
     },
     {
       "category": "Performance_Speed",
       "action": "Optimasi kode dan database queries",
       "urgency": "HIGH",
-      "affected_percentage": 10.73
+      "affected_percentage": 14.86
     },
     {
       "category": "Crashes_Errors",
       "action": "Debug dan fix critical bugs",
       "urgency": "CRITICAL",
-      "affected_percentage": 8.15
-    },
-    {
-      "category": "Features_Functionality",
-      "action": "Audit lengkap semua fitur",
-      "urgency": "HIGH",
-      "affected_percentage": 7.01
+      "affected_percentage": 8.32
     }
   ],
   "detailed_recommendations": {
     "Login_Authentication": {
       "problem_description": "Masalah login, autentikasi, dan akses akun",
-      "affected_users": "317 reviews (13.39%)",
+      "affected_users": "455 reviews (19.21%)",
       "priority": "HIGH",
       "recommended_actions": [
         "Perbaiki sistem autentikasi dan reset password",
@@ -42,7 +36,7 @@
     },
     "Performance_Speed": {
       "problem_description": "Masalah performa dan kecepatan aplikasi",
-      "affected_users": "254 reviews (10.73%)",
+      "affected_users": "352 reviews (14.86%)",
       "priority": "HIGH",
       "recommended_actions": [
         "Optimasi kode dan database queries",
@@ -53,23 +47,12 @@
     },
     "Crashes_Errors": {
       "problem_description": "Aplikasi crash, error, atau berhenti bekerja",
-      "affected_users": "193 reviews (8.15%)",
+      "affected_users": "197 reviews (8.32%)",
       "priority": "CRITICAL",
       "recommended_actions": [
         "Debug dan fix critical bugs",
         "Implementasi crash reporting yang lebih baik",
         "Extensive testing sebelum release"
-      ],
-      "estimated_impact": "Medium"
-    },
-    "Features_Functionality": {
-      "problem_description": "Masalah fitur dan fungsi aplikasi",
-      "affected_users": "166 reviews (7.01%)",
-      "priority": "HIGH",
-      "recommended_actions": [
-        "Audit lengkap semua fitur",
-        "Fix broken features prioritas tinggi",
-        "Documentation dan tutorial yang lebih baik"
       ],
       "estimated_impact": "Medium"
     }
@@ -85,8 +68,7 @@
       "phase": "Short-term (2-8 weeks)",
       "actions": [
         "Perbaiki sistem autentikasi dan reset password",
-        "Optimasi kode dan database queries",
-        "Audit lengkap semua fitur"
+        "Optimasi kode dan database queries"
       ]
     },
     {

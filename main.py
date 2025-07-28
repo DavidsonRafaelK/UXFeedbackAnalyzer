@@ -318,44 +318,110 @@ class ReviewProcessor:
                 self.logger.error(f"Fallback wordcloud also failed: {fallback_error}")
     
     def sentiment_analysis(self, app_name: str = "app"):
-        """Enhanced sentiment analysis"""
+        """Enhanced sentiment analysis with fallback options"""
         if not self.reviews:
             self.logger.warning("No reviews for sentiment analysis")
             return
             
         try:
-            # Use a more robust sentiment model
-            sentiment_pipeline = pipeline(
-                "sentiment-analysis", 
-                model="cardiffnlp/twitter-xlm-roberta-base-sentiment",
-                return_all_scores=True
-            )
-            
+            # Try multiple sentiment models with fallbacks
             contents = [review.get('content', '') for review in self.reviews if review.get('content')]
             if not contents:
                 self.logger.warning("No review contents for sentiment analysis")
                 return
-                
-            # Process in batches to avoid memory issues
-            batch_size = 50
-            all_sentiments = []
             
-            for i in range(0, len(contents), batch_size):
-                batch = contents[i:i+batch_size]
-                batch_sentiments = sentiment_pipeline(batch)
-                all_sentiments.extend(batch_sentiments)
-            
-            # Process results
             sentiment_data = []
-            for i, sentiment_scores in enumerate(all_sentiments):
-                best_sentiment = max(sentiment_scores, key=lambda x: x['score'])
-                sentiment_data.append({
-                    'review_index': i,
-                    'content': contents[i][:100] + '...' if len(contents[i]) > 100 else contents[i],
-                    'sentiment': best_sentiment['label'],
-                    'confidence': best_sentiment['score'],
-                    'score': self.reviews[i].get('score', 0)
-                })
+            
+            # Method 1: Try advanced transformer model
+            try:
+                sentiment_pipeline = pipeline(
+                    "sentiment-analysis", 
+                    model="cardiffnlp/twitter-xlm-roberta-base-sentiment",
+                    return_all_scores=True
+                )
+                
+                # Process in smaller batches
+                batch_size = 20
+                all_sentiments = []
+                
+                for i in range(0, min(len(contents), 100), batch_size):  # Limit to 100 reviews
+                    batch = contents[i:i+batch_size]
+                    try:
+                        batch_sentiments = sentiment_pipeline(batch)
+                        all_sentiments.extend(batch_sentiments)
+                    except Exception as e:
+                        self.logger.warning(f"Batch {i} failed: {e}")
+                        # Create dummy sentiments for failed batch
+                        for _ in batch:
+                            all_sentiments.append([
+                                {'label': 'LABEL_1', 'score': 0.5},
+                                {'label': 'LABEL_0', 'score': 0.3}, 
+                                {'label': 'LABEL_2', 'score': 0.2}
+                            ])
+                
+                # Process results
+                for i, sentiment_scores in enumerate(all_sentiments):
+                    if i < len(contents):
+                        best_sentiment = max(sentiment_scores, key=lambda x: x['score'])
+                        sentiment_data.append({
+                            'review_index': i,
+                            'content': contents[i][:100] + '...' if len(contents[i]) > 100 else contents[i],
+                            'sentiment': best_sentiment['label'],
+                            'confidence': best_sentiment['score'],
+                            'score': self.reviews[i].get('score', 0)
+                        })
+                        
+            except Exception as transformer_error:
+                self.logger.warning(f"Advanced sentiment analysis failed: {transformer_error}")
+                
+                # Method 2: Simple rule-based sentiment analysis as fallback
+                self.logger.info("Using rule-based sentiment analysis as fallback")
+                
+                positive_words = {
+                    'bagus', 'baik', 'mantap', 'keren', 'excellent', 'good', 'great', 'amazing', 
+                    'perfect', 'love', 'like', 'recommended', 'helpful', 'useful', 'fantastic',
+                    'suka', 'senang', 'puas', 'memuaskan', 'terbaik', 'hebat', 'luar biasa'
+                }
+                
+                negative_words = {
+                    'buruk', 'jelek', 'bad', 'terrible', 'awful', 'hate', 'worst', 'useless',
+                    'broken', 'error', 'bug', 'crash', 'slow', 'lambat', 'lemot', 'rusak',
+                    'gagal', 'tidak bisa', 'susah', 'sulit', 'kecewa', 'disappointed'
+                }
+                
+                for i, content in enumerate(contents):
+                    content_lower = content.lower()
+                    
+                    # Count positive and negative words
+                    pos_count = sum(1 for word in positive_words if word in content_lower)
+                    neg_count = sum(1 for word in negative_words if word in content_lower)
+                    
+                    # Determine sentiment based on review score and word counts
+                    review_score = self.reviews[i].get('score', 3) if i < len(self.reviews) else 3
+                    
+                    if review_score >= 4 or pos_count > neg_count:
+                        sentiment = 'LABEL_2'  # Positive
+                        confidence = 0.7 + (pos_count * 0.1)
+                    elif review_score <= 2 or neg_count > pos_count:
+                        sentiment = 'LABEL_0'  # Negative  
+                        confidence = 0.7 + (neg_count * 0.1)
+                    else:
+                        sentiment = 'LABEL_1'  # Neutral
+                        confidence = 0.6
+                    
+                    confidence = min(confidence, 0.95)  # Cap confidence
+                    
+                    sentiment_data.append({
+                        'review_index': i,
+                        'content': content[:100] + '...' if len(content) > 100 else content,
+                        'sentiment': sentiment,
+                        'confidence': confidence,
+                        'score': review_score
+                    })
+            
+            if not sentiment_data:
+                self.logger.error("No sentiment data generated")
+                return None
             
             # Create DataFrame and save
             df = pd.DataFrame(sentiment_data)
@@ -366,9 +432,16 @@ class ReviewProcessor:
             sentiment_summary = df['sentiment'].value_counts()
             avg_confidence = df['confidence'].mean()
             
+            # Map labels to readable names
+            label_mapping = {
+                'LABEL_0': 'Negative',
+                'LABEL_1': 'Neutral', 
+                'LABEL_2': 'Positive'
+            }
+            
             summary = {
                 'total_reviews': len(df),
-                'sentiment_distribution': sentiment_summary.to_dict(),
+                'sentiment_distribution': {label_mapping.get(k, k): v for k, v in sentiment_summary.to_dict().items()},
                 'average_confidence': avg_confidence,
                 'positive_percentage': (sentiment_summary.get('LABEL_2', 0) / len(df)) * 100,
                 'negative_percentage': (sentiment_summary.get('LABEL_0', 0) / len(df)) * 100,
@@ -379,12 +452,90 @@ class ReviewProcessor:
             with open(f"{self.output_dir}/sentiment_summary_{app_name.lower().replace(' ', '_')}.json", 'w') as f:
                 json.dump(summary, f, indent=2)
                 
+            # Create sentiment visualization
+            self.create_sentiment_visualizations(df, summary, app_name)
+                
             self.logger.info(f"Sentiment analysis completed and saved to {output_path}")
             return summary
             
         except Exception as e:
             self.logger.error(f"Error in sentiment analysis: {e}")
             return None
+    
+    def create_sentiment_visualizations(self, df: pd.DataFrame, summary: Dict, app_name: str):
+        """Create sentiment analysis visualizations"""
+        try:
+            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+            
+            # 1. Sentiment distribution pie chart
+            sentiments = ['Positive', 'Neutral', 'Negative']
+            percentages = [
+                summary['positive_percentage'],
+                summary['neutral_percentage'], 
+                summary['negative_percentage']
+            ]
+            colors = ['green', 'gray', 'red']
+            
+            ax1.pie(percentages, labels=sentiments, autopct='%1.1f%%', colors=colors, startangle=90)
+            ax1.set_title(f'Sentiment Distribution - {app_name}', fontweight='bold')
+            
+            # 2. Sentiment by rating
+            sentiment_by_score = df.groupby(['score', 'sentiment']).size().unstack(fill_value=0)
+            sentiment_by_score.plot(kind='bar', ax=ax2, color=['red', 'gray', 'green'])
+            ax2.set_title(f'Sentiment by Rating - {app_name}', fontweight='bold')
+            ax2.set_xlabel('Rating (Stars)')
+            ax2.set_ylabel('Count')
+            ax2.legend(title='Sentiment')
+            ax2.tick_params(axis='x', rotation=0)
+            
+            # 3. Confidence distribution
+            ax3.hist(df['confidence'], bins=20, alpha=0.7, color='blue', edgecolor='black')
+            ax3.set_title(f'Sentiment Confidence Distribution - {app_name}', fontweight='bold')
+            ax3.set_xlabel('Confidence Score')
+            ax3.set_ylabel('Frequency')
+            ax3.axvline(df['confidence'].mean(), color='red', linestyle='--', 
+                       label=f'Mean: {df["confidence"].mean():.3f}')
+            ax3.legend()
+            ax3.grid(True, alpha=0.3)
+            
+            # 4. Sentiment trend (if enough data)
+            if len(df) > 50:
+                # Create rolling sentiment average
+                df_sorted = df.sort_values('review_index')
+                window_size = max(10, len(df) // 20)
+                
+                # Convert sentiment to numeric for rolling average
+                sentiment_numeric = df_sorted['sentiment'].map({
+                    'LABEL_0': -1,  # Negative
+                    'LABEL_1': 0,   # Neutral
+                    'LABEL_2': 1    # Positive
+                })
+                
+                rolling_sentiment = sentiment_numeric.rolling(window=window_size).mean()
+                
+                ax4.plot(rolling_sentiment.index, rolling_sentiment, linewidth=2, color='purple')
+                ax4.set_title(f'Sentiment Trend - {app_name}', fontweight='bold')
+                ax4.set_xlabel('Review Index')
+                ax4.set_ylabel('Average Sentiment Score')
+                ax4.axhline(y=0, color='gray', linestyle='-', alpha=0.5, label='Neutral')
+                ax4.axhline(y=0.5, color='green', linestyle='--', alpha=0.5, label='Positive')
+                ax4.axhline(y=-0.5, color='red', linestyle='--', alpha=0.5, label='Negative')
+                ax4.legend()
+                ax4.grid(True, alpha=0.3)
+            else:
+                ax4.text(0.5, 0.5, 'Insufficient data\nfor trend analysis', 
+                        ha='center', va='center', transform=ax4.transAxes, fontsize=12)
+                ax4.set_title(f'Sentiment Trend - {app_name}', fontweight='bold')
+            
+            plt.tight_layout()
+            sentiment_viz_path = f"{self.output_dir}/sentiment_visualization_{app_name.lower().replace(' ', '_')}.png"
+            plt.savefig(sentiment_viz_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            self.logger.info(f"Sentiment visualization saved to {sentiment_viz_path}")
+            
+        except Exception as e:
+            self.logger.error(f"Error creating sentiment visualizations: {e}")
     
     def topic_modeling(self, processed_reviews: List[str], app_name: str = "app", n_topics: int = 5):
         """Perform topic modeling using LDA"""
@@ -630,55 +781,173 @@ class ReviewProcessor:
             return
             
         try:
-            # Define problem categories with Indonesian keywords
+            # Define problem categories with Indonesian keywords - ENHANCED VERSION
             problem_categories = {
                 'Login_Authentication': {
-                    'keywords': ['login', 'masuk', 'sign in', 'password', 'akun', 'account', 'sandi', 'lupa password', 'forgot password', 'tidak bisa masuk', 'gabisa login', 'ga bisa masuk'],
+                    'keywords': [
+                        'login', 'masuk', 'sign in', 'password', 'akun', 'account', 'sandi', 
+                        'lupa password', 'forgot password', 'tidak bisa masuk', 'gabisa login', 
+                        'ga bisa masuk', 'gagal login', 'failed login', 'username', 'email',
+                        'verifikasi', 'verification', 'otp', 'kode verifikasi', 'reset password',
+                        'ganti password', 'lupa sandi', 'autentikasi', 'authentication',
+                        'session expired', 'logout', 'keluar sendiri', 'auto logout'
+                    ],
                     'description': 'Masalah login, autentikasi, dan akses akun'
                 },
                 'Performance_Speed': {
-                    'keywords': ['lambat', 'slow', 'lemot', 'loading', 'lag', 'ngelag', 'patah patah', 'not responding', 'hang', 'freeze', 'stuck', 'macet'],
+                    'keywords': [
+                        'lambat', 'slow', 'lemot', 'loading', 'lag', 'ngelag', 'patah patah',
+                        'not responding', 'hang', 'freeze', 'stuck', 'macet', 'lama',
+                        'buffering', 'pending', 'menunggu', 'delay', 'timeout',
+                        'sangat lambat', 'terlalu lama', 'proses lama', 'respon lambat',
+                        'loading lama', 'lemot banget', 'lelet', 'slow response'
+                    ],
                     'description': 'Masalah performa dan kecepatan aplikasi'
                 },
                 'Crashes_Errors': {
-                    'keywords': ['crash', 'error', 'force close', 'berhenti sendiri', 'keluar sendiri', 'tutup sendiri', 'tidak merespon', 'gagal', 'failed', 'bug', 'rusak'],
+                    'keywords': [
+                        'crash', 'error', 'force close', 'berhenti sendiri', 'keluar sendiri',
+                        'tutup sendiri', 'tidak merespon', 'gagal', 'failed', 'bug', 'rusak',
+                        'force stop', 'application error', 'system error', 'fatal error',
+                        'unexpected error', 'runtime error', 'null pointer', 'exception',
+                        'mati mendadak', 'restart', 'reboot', 'tidak berfungsi',
+                        'broken', 'corrupted', 'damaged'
+                    ],
                     'description': 'Aplikasi crash, error, atau berhenti bekerja'
                 },
                 'Network_Connection': {
-                    'keywords': ['internet', 'koneksi', 'connection', 'network', 'offline', 'tidak terhubung', 'no connection', 'jaringan', 'sinyal'],
+                    'keywords': [
+                        'internet', 'koneksi', 'connection', 'network', 'offline', 
+                        'tidak terhubung', 'no connection', 'jaringan', 'sinyal',
+                        'wifi', 'data', 'mobile data', 'server', 'timeout',
+                        'connection failed', 'network error', 'no internet',
+                        'putus koneksi', 'koneksi terputus', 'gangguan jaringan'
+                    ],
                     'description': 'Masalah koneksi internet dan jaringan'
                 },
                 'User_Interface': {
-                    'keywords': ['tampilan', 'ui', 'interface', 'design', 'layout', 'button', 'tombol', 'menu', 'tidak terlihat', 'terpotong', 'overlap'],
+                    'keywords': [
+                        'tampilan', 'ui', 'interface', 'design', 'layout', 'button', 'tombol',
+                        'menu', 'tidak terlihat', 'terpotong', 'overlap', 'font', 'text',
+                        'warna', 'color', 'size', 'ukuran', 'posisi', 'position',
+                        'responsive', 'screen', 'layar', 'resolution', 'zoom',
+                        'kecil', 'besar', 'blur', 'buram', 'jelek', 'buruk tampilan'
+                    ],
                     'description': 'Masalah tampilan dan antarmuka pengguna'
                 },
                 'Features_Functionality': {
-                    'keywords': ['fitur', 'feature', 'fungsi', 'tidak berfungsi', 'tidak bekerja', 'hilang', 'missing', 'gak ada', 'ga ada', 'tidak ada'],
+                    'keywords': [
+                        'fitur', 'feature', 'fungsi', 'tidak berfungsi', 'tidak bekerja',
+                        'hilang', 'missing', 'gak ada', 'ga ada', 'tidak ada',
+                        'function', 'work', 'broken feature', 'disabled', 'unavailable',
+                        'removed', 'dihapus', 'tidak tersedia', 'belum tersedia',
+                        'coming soon', 'maintenance', 'under development'
+                    ],
                     'description': 'Masalah fitur dan fungsi aplikasi'
                 },
                 'Data_Sync': {
-                    'keywords': ['sinkronisasi', 'sync', 'data', 'tidak tersimpan', 'hilang data', 'lost data', 'backup', 'restore'],
+                    'keywords': [
+                        'sinkronisasi', 'sync', 'data', 'tidak tersimpan', 'hilang data',
+                        'lost data', 'backup', 'restore', 'synchronization',
+                        'save', 'simpan', 'export', 'import', 'transfer',
+                        'cloud', 'storage', 'database', 'recovery'
+                    ],
                     'description': 'Masalah sinkronisasi dan kehilangan data'
                 },
                 'Payment_Transaction': {
-                    'keywords': ['pembayaran', 'payment', 'transaksi', 'bayar', 'saldo', 'transfer', 'top up', 'withdraw', 'failed payment'],
+                    'keywords': [
+                        'pembayaran', 'payment', 'transaksi', 'bayar', 'saldo', 'transfer',
+                        'top up', 'withdraw', 'failed payment', 'transaction failed',
+                        'uang', 'money', 'credit', 'debit', 'bank', 'wallet',
+                        'e-wallet', 'digital payment', 'cashless', 'refund'
+                    ],
                     'description': 'Masalah pembayaran dan transaksi'
                 },
                 'Notification_Alerts': {
-                    'keywords': ['notifikasi', 'notification', 'pemberitahuan', 'alert', 'tidak muncul notif', 'ga ada notif'],
+                    'keywords': [
+                        'notifikasi', 'notification', 'pemberitahuan', 'alert', 
+                        'tidak muncul notif', 'ga ada notif', 'push notification',
+                        'reminder', 'pengingat', 'bell', 'sound', 'vibration',
+                        'badge', 'popup', 'toast', 'message'
+                    ],
                     'description': 'Masalah notifikasi dan peringatan'
                 },
                 'Customer_Service': {
-                    'keywords': ['customer service', 'cs', 'support', 'bantuan', 'help', 'contact', 'komplain', 'laporan', 'respon lambat'],
+                    'keywords': [
+                        'customer service', 'cs', 'support', 'bantuan', 'help', 'contact',
+                        'komplain', 'laporan', 'respon lambat', 'tidak direspon',
+                        'admin', 'operator', 'live chat', 'call center',
+                        'feedback', 'saran', 'kritik', 'pengaduan'
+                    ],
                     'description': 'Masalah layanan pelanggan dan dukungan'
                 },
                 'Security_Privacy': {
-                    'keywords': ['keamanan', 'security', 'privacy', 'privasi', 'data pribadi', 'hack', 'spam', 'phishing'],
+                    'keywords': [
+                        'keamanan', 'security', 'privacy', 'privasi', 'data pribadi',
+                        'hack', 'spam', 'phishing', 'virus', 'malware',
+                        'permission', 'akses', 'unauthorized', 'breach',
+                        'leak', 'bocor', 'terekspos'
+                    ],
                     'description': 'Masalah keamanan dan privasi'
                 },
                 'Installation_Update': {
-                    'keywords': ['install', 'update', 'upgrade', 'download', 'gagal install', 'failed update', 'tidak bisa update'],
+                    'keywords': [
+                        'install', 'update', 'upgrade', 'download', 'gagal install',
+                        'failed update', 'tidak bisa update', 'installation failed',
+                        'download failed', 'app store', 'play store',
+                        'version', 'versi', 'latest version', 'old version'
+                    ],
                     'description': 'Masalah instalasi dan pembaruan aplikasi'
+                },
+                'Registration_Verification': {
+                    'keywords': [
+                        'daftar', 'register', 'registrasi', 'pendaftaran', 'sign up',
+                        'verifikasi', 'verification', 'activate', 'aktivasi',
+                        'confirm', 'konfirmasi', 'email verification', 'phone verification',
+                        'ktp', 'identitas', 'dokumen', 'selfie', 'foto'
+                    ],
+                    'description': 'Masalah pendaftaran dan verifikasi akun'
+                },
+                'Search_Filter': {
+                    'keywords': [
+                        'cari', 'search', 'pencarian', 'filter', 'sort', 'urutkan',
+                        'kategori', 'category', 'hasil pencarian', 'not found',
+                        'tidak ditemukan', 'kosong', 'empty', 'no result'
+                    ],
+                    'description': 'Masalah pencarian dan filter'
+                },
+                'Content_Information': {
+                    'keywords': [
+                        'informasi', 'information', 'content', 'konten', 'artikel',
+                        'berita', 'news', 'update info', 'tidak update',
+                        'outdated', 'salah info', 'wrong information', 'misleading',
+                        'kurang lengkap', 'incomplete', 'detail'
+                    ],
+                    'description': 'Masalah konten dan informasi'
+                },
+                'Location_GPS': {
+                    'keywords': [
+                        'lokasi', 'location', 'gps', 'maps', 'peta', 'alamat',
+                        'address', 'koordinat', 'coordinate', 'navigation',
+                        'arah', 'direction', 'tracking', 'pelacakan'
+                    ],
+                    'description': 'Masalah lokasi dan GPS'
+                },
+                'File_Document': {
+                    'keywords': [
+                        'file', 'dokumen', 'document', 'pdf', 'foto', 'photo',
+                        'gambar', 'image', 'video', 'upload', 'download',
+                        'attachment', 'lampiran', 'format', 'size', 'ukuran file'
+                    ],
+                    'description': 'Masalah file dan dokumen'
+                },
+                'Language_Text': {
+                    'keywords': [
+                        'bahasa', 'language', 'teks', 'text', 'translate', 'terjemahan',
+                        'font', 'huruf', 'karakter', 'character', 'encoding',
+                        'unicode', 'symbol', 'emoji'
+                    ],
+                    'description': 'Masalah bahasa dan teks'
                 }
             }
             
@@ -687,6 +956,9 @@ class ReviewProcessor:
             category_counts = {category: 0 for category in problem_categories.keys()}
             category_counts['Other_Issues'] = 0
             category_counts['No_Problem_Detected'] = 0
+            
+            # Store "Other Issues" content for further analysis
+            other_issues_content = []
             
             for i, review in enumerate(self.reviews):
                 content = review.get('content', '').lower()
@@ -712,6 +984,7 @@ class ReviewProcessor:
                     if not detected_problems:
                         detected_problems.append('Other_Issues')
                         category_counts['Other_Issues'] += 1
+                        other_issues_content.append(content)
                 else:
                     # High-rated reviews (4-5 stars) are considered no problem
                     detected_problems.append('No_Problem_Detected')
@@ -790,6 +1063,10 @@ class ReviewProcessor:
             # Create problem visualization
             self.create_problem_visualizations(category_counts, problem_categories, app_name)
             
+            # Analyze "Other Issues" to find unidentified patterns
+            if other_issues_content:
+                self.analyze_other_issues(other_issues_content, app_name)
+            
             # Print problem analysis summary
             print(f"\n🚨 USER PROBLEM ANALYSIS - {app_name}")
             print("=" * 60)
@@ -815,8 +1092,91 @@ class ReviewProcessor:
             self.logger.error(f"Error in problem analysis: {e}")
             return None
     
+    def analyze_other_issues(self, other_issues_reviews: List[str], app_name: str = "app"):
+        """Analyze 'Other Issues' to identify unrecognized problem patterns"""
+        if not other_issues_reviews:
+            return
+            
+        try:
+            # Use TF-IDF to find common terms in unidentified issues
+            vectorizer = TfidfVectorizer(
+                max_features=50,
+                min_df=2,
+                max_df=0.8,
+                ngram_range=(1, 3),  # Include phrases
+                stop_words=list(self.stopwords)
+            )
+            
+            # Preprocess the "other issues" reviews
+            processed_other = []
+            for review in other_issues_reviews:
+                processed = self.preprocess_text(review)
+                if processed:
+                    processed_other.append(processed)
+            
+            if not processed_other:
+                return
+                
+            tfidf_matrix = vectorizer.fit_transform(processed_other)
+            feature_names = vectorizer.get_feature_names_out()
+            
+            # Get mean TF-IDF scores
+            mean_scores = np.mean(tfidf_matrix.toarray(), axis=0)
+            
+            # Create DataFrame with terms and scores
+            terms_scores = pd.DataFrame({
+                'term': feature_names,
+                'tfidf_score': mean_scores
+            }).sort_values('tfidf_score', ascending=False)
+            
+            # Save unidentified patterns
+            output_path = f"{self.output_dir}/unidentified_issues_analysis_{app_name.lower().replace(' ', '_')}.csv"
+            terms_scores.to_csv(output_path, index=False)
+            
+            # Print top unidentified terms
+            print(f"\n🔍 UNIDENTIFIED ISSUE PATTERNS - {app_name}")
+            print("=" * 50)
+            print("Top terms in 'Other Issues' that might need new categories:")
+            print("-" * 50)
+            
+            for i, (_, row) in enumerate(terms_scores.head(20).iterrows(), 1):
+                print(f"{i:2d}. {row['term']:<20} (score: {row['tfidf_score']:.4f})")
+            
+            print("=" * 50)
+            print("💡 Suggestion: Consider adding these patterns to problem categories")
+            print("=" * 50)
+            
+            # Create visualization for unidentified patterns
+            plt.figure(figsize=(12, 8))
+            top_20 = terms_scores.head(20)
+            
+            bars = plt.barh(range(len(top_20)), top_20['tfidf_score'], 
+                           color='orange', alpha=0.7, edgecolor='darkorange')
+            plt.xlabel('TF-IDF Score', fontweight='bold')
+            plt.ylabel('Terms/Phrases', fontweight='bold')
+            plt.title(f'Top Unidentified Issue Patterns - {app_name}', fontweight='bold', fontsize=14)
+            plt.yticks(range(len(top_20)), top_20['term'])
+            plt.gca().invert_yaxis()
+            
+            # Add value labels
+            for i, (bar, score) in enumerate(zip(bars, top_20['tfidf_score'])):
+                plt.text(bar.get_width() + 0.001, bar.get_y() + bar.get_height()/2,
+                        f'{score:.3f}', va='center', fontsize=9)
+            
+            plt.tight_layout()
+            viz_path = f"{self.output_dir}/unidentified_patterns_{app_name.lower().replace(' ', '_')}.png"
+            plt.savefig(viz_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            self.logger.info(f"Unidentified issues analysis saved to {output_path}")
+            return terms_scores
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing other issues: {e}")
+            return None
+
     def create_problem_visualizations(self, category_counts: Dict, problem_categories: Dict, app_name: str):
-        """Create visualizations for problem analysis"""
+        """Create comprehensive problem analysis visualizations"""
         try:
             # Filter out zero counts and non-problem categories
             filtered_counts = {k: v for k, v in category_counts.items() 
@@ -826,10 +1186,12 @@ class ReviewProcessor:
                 self.logger.warning("No problems detected for visualization")
                 return
             
-            # Create comprehensive problem visualization
-            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+            # Create main problem analysis dashboard
+            fig = plt.figure(figsize=(20, 16))
+            gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
             
-            # 1. Problem frequency bar chart
+            # 1. Problem frequency bar chart (top-left)
+            ax1 = fig.add_subplot(gs[0, 0])
             categories = list(filtered_counts.keys())
             counts = list(filtered_counts.values())
             
@@ -841,106 +1203,233 @@ class ReviewProcessor:
             bars1 = ax1.bar(range(len(categories)), counts, color=colors, edgecolor='black', alpha=0.8)
             ax1.set_xlabel('Problem Categories', fontweight='bold')
             ax1.set_ylabel('Number of Reports', fontweight='bold')
-            ax1.set_title(f'User Problems Frequency - {app_name}', fontweight='bold', fontsize=14)
+            ax1.set_title(f'Problem Frequency - {app_name}', fontweight='bold', fontsize=12)
             ax1.set_xticks(range(len(categories)))
-            ax1.set_xticklabels([cat.replace('_', '\n') for cat in categories], rotation=45, ha='right', fontsize=10)
+            ax1.set_xticklabels([cat.replace('_', '\n') for cat in categories], rotation=45, ha='right', fontsize=9)
             ax1.grid(True, alpha=0.3, axis='y')
             
-            # Add value labels on bars
+            # Add value labels
             for bar, count in zip(bars1, counts):
-                ax1.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.5,
-                        f'{count}', ha='center', va='bottom', fontweight='bold')
+                ax1.text(bar.get_x() + bar.get_width()/2., bar.get_height() + max(counts)*0.01,
+                        f'{count}', ha='center', va='bottom', fontweight='bold', fontsize=9)
             
-            # 2. Problem distribution pie chart
+            # 2. Problem distribution pie chart (top-center)
+            ax2 = fig.add_subplot(gs[0, 1])
             if len(categories) > 0:
-                ax2.pie(counts, labels=[cat.replace('_', ' ') for cat in categories], autopct='%1.1f%%', 
-                       colors=colors, startangle=90)
-                ax2.set_title(f'Problem Distribution - {app_name}', fontweight='bold', fontsize=14)
+                wedges, texts, autotexts = ax2.pie(counts, labels=[cat.replace('_', ' ') for cat in categories], 
+                                                  autopct='%1.1f%%', colors=colors, startangle=90)
+                ax2.set_title(f'Problem Distribution - {app_name}', fontweight='bold', fontsize=12)
+                
+                # Improve text readability
+                for autotext in autotexts:
+                    autotext.set_color('white')
+                    autotext.set_fontweight('bold')
+                    autotext.set_fontsize(8)
             
-            # 3. Problem severity heatmap
+            # 3. Problem severity heatmap (top-right)
+            ax3 = fig.add_subplot(gs[0, 2])
             severity_matrix = []
             severity_labels = []
             
-            for category in categories:
-                if category in problem_categories:
-                    # Create severity score based on frequency
-                    severity_score = filtered_counts[category]
-                    severity_matrix.append([severity_score])
-                    severity_labels.append(category.replace('_', ' '))
+            for category in categories[:10]:  # Top 10 only
+                severity_score = filtered_counts[category]
+                severity_matrix.append([severity_score])
+                severity_labels.append(category.replace('_', ' '))
             
             if severity_matrix:
                 im = ax3.imshow(severity_matrix, cmap='Reds', aspect='auto')
                 ax3.set_yticks(range(len(severity_labels)))
-                ax3.set_yticklabels(severity_labels, fontsize=10)
+                ax3.set_yticklabels(severity_labels, fontsize=9)
                 ax3.set_xticks([0])
                 ax3.set_xticklabels(['Severity'], fontweight='bold')
-                ax3.set_title(f'Problem Severity Matrix - {app_name}', fontweight='bold', fontsize=14)
+                ax3.set_title(f'Problem Severity - {app_name}', fontweight='bold', fontsize=12)
+                
+                # Add colorbar
+                plt.colorbar(im, ax=ax3, shrink=0.8)
                 
                 # Add text annotations
                 for i, severity in enumerate(severity_matrix):
-                    ax3.text(0, i, f'{severity[0]}', ha='center', va='center', fontweight='bold', color='white')
+                    ax3.text(0, i, f'{severity[0]}', ha='center', va='center', 
+                            fontweight='bold', color='white' if severity[0] > max(counts)*0.5 else 'black')
             
-            # 4. Problem trend (if we have review dates)
+            # 4. Problem trend over time (middle-left)
+            ax4 = fig.add_subplot(gs[1, 0])
             review_dates = [r.get('at') for r in self.reviews if r.get('at')]
             if review_dates and len(review_dates) > 10:
-                # Group by month and count low-rated reviews
-                df_dates = pd.DataFrame({'date': review_dates, 'score': [r.get('score', 5) for r in self.reviews]})
+                df_dates = pd.DataFrame({
+                    'date': review_dates, 
+                    'score': [r.get('score', 5) for r in self.reviews]
+                })
                 df_dates['month'] = pd.to_datetime(df_dates['date']).dt.to_period('M')
                 monthly_problems = df_dates[df_dates['score'] <= 3].groupby('month').size()
                 
                 if len(monthly_problems) > 1:
-                    monthly_problems.plot(kind='line', ax=ax4, marker='o', linewidth=2, markersize=6)
+                    monthly_problems.plot(kind='line', ax=ax4, marker='o', linewidth=2, 
+                                        markersize=6, color='red', alpha=0.8)
                     ax4.set_xlabel('Month', fontweight='bold')
                     ax4.set_ylabel('Problem Reports', fontweight='bold')
-                    ax4.set_title(f'Problem Reports Trend - {app_name}', fontweight='bold', fontsize=14)
+                    ax4.set_title(f'Problem Trend - {app_name}', fontweight='bold', fontsize=12)
                     ax4.grid(True, alpha=0.3)
                     ax4.tick_params(axis='x', rotation=45)
+                    
+                    # Add trend line
+                    x_vals = range(len(monthly_problems))
+                    y_vals = monthly_problems.values
+                    if len(x_vals) > 1:
+                        z = np.polyfit(x_vals, y_vals, 1)
+                        p = np.poly1d(z)
+                        ax4.plot(monthly_problems.index, p(x_vals), "--", alpha=0.8, color='orange', 
+                                label=f'Trend: {"↑" if z[0] > 0 else "↓"}')
+                        ax4.legend()
                 else:
                     ax4.text(0.5, 0.5, 'Insufficient data\nfor trend analysis', 
                             ha='center', va='center', transform=ax4.transAxes, fontsize=12)
-                    ax4.set_title(f'Problem Trend - {app_name}', fontweight='bold', fontsize=14)
+                    ax4.set_title(f'Problem Trend - {app_name}', fontweight='bold', fontsize=12)
             else:
                 ax4.text(0.5, 0.5, 'No date data available\nfor trend analysis', 
                         ha='center', va='center', transform=ax4.transAxes, fontsize=12)
-                ax4.set_title(f'Problem Trend - {app_name}', fontweight='bold', fontsize=14)
+                ax4.set_title(f'Problem Trend - {app_name}', fontweight='bold', fontsize=12)
             
-            plt.tight_layout()
-            viz_output_path = f"{self.output_dir}/problem_analysis_visualization_{app_name.lower().replace(' ', '_')}.png"
-            plt.savefig(viz_output_path, dpi=300, bbox_inches='tight')
+            # 5. Score vs Problem correlation (middle-center)
+            ax5 = fig.add_subplot(gs[1, 1])
+            scores = [r.get('score', 5) for r in self.reviews]
+            
+            # Create stacked bar for problems vs no problems
+            problem_counts_by_score = {}
+            for score in range(1, 6):
+                problem_count = sum(1 for r in self.reviews if r.get('score') == score and score <= 3)
+                total_count = sum(1 for r in self.reviews if r.get('score') == score)
+                no_problem_count = total_count - problem_count
+                problem_counts_by_score[score] = {'problems': problem_count, 'no_problems': no_problem_count}
+            
+            scores_list = list(problem_counts_by_score.keys())
+            problems_list = [problem_counts_by_score[s]['problems'] for s in scores_list]
+            no_problems_list = [problem_counts_by_score[s]['no_problems'] for s in scores_list]
+            
+            ax5.bar(scores_list, problems_list, label='With Problems', color='red', alpha=0.7)
+            ax5.bar(scores_list, no_problems_list, bottom=problems_list, label='No Problems', color='green', alpha=0.7)
+            ax5.set_xlabel('Rating (Stars)', fontweight='bold')
+            ax5.set_ylabel('Number of Reviews', fontweight='bold')
+            ax5.set_title(f'Problems by Rating - {app_name}', fontweight='bold', fontsize=12)
+            ax5.legend()
+            ax5.grid(True, alpha=0.3, axis='y')
+            
+            # 6. Problem impact analysis (middle-right)
+            ax6 = fig.add_subplot(gs[1, 2])
+            # Calculate impact score (frequency * severity weight)
+            impact_scores = {}
+            severity_weights = {
+                'Crashes_Errors': 3.0,
+                'Login_Authentication': 2.5,
+                'Performance_Speed': 2.0,
+                'Features_Functionality': 2.0,
+                'Network_Connection': 1.8,
+                'Data_Sync': 1.7,
+                'Payment_Transaction': 1.5,
+                'User_Interface': 1.3,
+                'Installation_Update': 1.2,
+                'Other_Issues': 1.0
+            }
+            
+            for cat, count in filtered_counts.items():
+                if cat != 'Other_Issues':
+                    weight = severity_weights.get(cat, 1.0)
+                    impact_scores[cat] = count * weight
+            
+            if impact_scores:
+                sorted_impact = sorted(impact_scores.items(), key=lambda x: x[1], reverse=True)
+                impact_cats, impact_vals = zip(*sorted_impact[:10])
+                
+                bars6 = ax6.barh(range(len(impact_cats)), impact_vals, 
+                               color=plt.cm.Reds(np.linspace(0.3, 0.9, len(impact_cats))))
+                ax6.set_xlabel('Impact Score', fontweight='bold')
+                ax6.set_ylabel('Problem Categories', fontweight='bold')
+                ax6.set_title(f'Problem Impact Analysis - {app_name}', fontweight='bold', fontsize=12)
+                ax6.set_yticks(range(len(impact_cats)))
+                ax6.set_yticklabels([cat.replace('_', ' ') for cat in impact_cats], fontsize=9)
+                ax6.invert_yaxis()
+                
+                # Add value labels
+                for bar, val in zip(bars6, impact_vals):
+                    ax6.text(bar.get_width() + max(impact_vals)*0.01, bar.get_y() + bar.get_height()/2,
+                            f'{val:.1f}', va='center', fontsize=9, fontweight='bold')
+            
+            # 7. Problem statistics summary (bottom span)
+            ax7 = fig.add_subplot(gs[2, :])
+            
+            # Calculate comprehensive statistics
+            total_reviews = len(self.reviews)
+            low_rated = sum(1 for r in self.reviews if r.get('score', 5) <= 3)
+            problem_detection_rate = (low_rated / total_reviews * 100) if total_reviews > 0 else 0
+            
+            # Create metrics summary
+            metrics = [
+                f'Total Reviews Analyzed: {total_reviews:,}',
+                f'Problem Detection Rate: {problem_detection_rate:.1f}%',
+                f'Most Common Problem: {categories[0].replace("_", " ") if categories else "None"}',
+                f'Total Problem Categories: {len([c for c in categories if c != "Other_Issues"])}',
+                f'Unidentified Issues: {filtered_counts.get("Other_Issues", 0)} ({(filtered_counts.get("Other_Issues", 0)/total_reviews*100):.1f}%)'
+            ]
+            
+            ax7.text(0.5, 0.8, f'PROBLEM ANALYSIS DASHBOARD - {app_name}', 
+                    ha='center', va='center', transform=ax7.transAxes, 
+                    fontsize=18, fontweight='bold')
+            
+            # Display metrics in two columns
+            col1_metrics = metrics[:3]
+            col2_metrics = metrics[3:]
+            
+            for i, metric in enumerate(col1_metrics):
+                ax7.text(0.1, 0.6 - i*0.1, f'• {metric}', 
+                        ha='left', va='center', transform=ax7.transAxes, 
+                        fontsize=12, fontweight='bold')
+                        
+            for i, metric in enumerate(col2_metrics):
+                ax7.text(0.6, 0.6 - i*0.1, f'• {metric}', 
+                        ha='left', va='center', transform=ax7.transAxes, 
+                        fontsize=12, fontweight='bold')
+            
+            ax7.axis('off')
+            
+            # Save the comprehensive dashboard
+            plt.suptitle(f'Comprehensive Problem Analysis Dashboard - {app_name}', 
+                        fontsize=20, fontweight='bold', y=0.98)
+            
+            dashboard_path = f"{self.output_dir}/problem_analysis_dashboard_{app_name.lower().replace(' ', '_')}.png"
+            plt.savefig(dashboard_path, dpi=300, bbox_inches='tight')
             plt.close()
             
-            # Create a separate detailed problem breakdown chart
-            if len(categories) > 0:
-                plt.figure(figsize=(14, 8))
+            # Create separate detailed horizontal bar chart
+            plt.figure(figsize=(14, max(8, len(categories))))
+            
+            # Horizontal bar chart for better readability
+            y_pos = np.arange(len(categories))
+            bars = plt.barh(y_pos, counts, color=colors, edgecolor='black', alpha=0.8)
+            
+            plt.xlabel('Number of Problem Reports', fontweight='bold', fontsize=14)
+            plt.ylabel('Problem Categories', fontweight='bold', fontsize=14)
+            plt.title(f'Detailed User Problem Breakdown - {app_name}', fontweight='bold', fontsize=16)
+            plt.yticks(y_pos, [cat.replace('_', ' ') for cat in categories])
+            
+            # Add value labels and descriptions
+            for i, (bar, category, count) in enumerate(zip(bars, categories, counts)):
+                plt.text(bar.get_width() + max(counts)*0.01, bar.get_y() + bar.get_height()/2,
+                        f'{count} ({count/sum(counts)*100:.1f}%)', va='center', fontweight='bold')
                 
-                # Horizontal bar chart for better readability
-                y_pos = np.arange(len(categories))
-                bars = plt.barh(y_pos, counts, color=colors, edgecolor='black', alpha=0.8)
-                
-                plt.xlabel('Number of Problem Reports', fontweight='bold', fontsize=12)
-                plt.ylabel('Problem Categories', fontweight='bold', fontsize=12)
-                plt.title(f'Detailed User Problem Breakdown - {app_name}', fontweight='bold', fontsize=16)
-                plt.yticks(y_pos, [cat.replace('_', ' ') for cat in categories])
-                
-                # Add value labels and descriptions
-                for i, (bar, category, count) in enumerate(zip(bars, categories, counts)):
-                    plt.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height()/2,
-                            f'{count}', va='center', fontweight='bold')
-                    
-                    # Add description as subtitle
-                    if category in problem_categories:
-                        description = problem_categories[category]['description']
-                        plt.text(0.02 * max(counts), bar.get_y() + bar.get_height()/2,
-                               f'{description}', va='center', fontsize=9, alpha=0.7)
-                
-                plt.grid(True, alpha=0.3, axis='x')
-                plt.tight_layout()
-                
-                detailed_viz_path = f"{self.output_dir}/problem_breakdown_detailed_{app_name.lower().replace(' ', '_')}.png"
-                plt.savefig(detailed_viz_path, dpi=300, bbox_inches='tight')
-                plt.close()
-                
-                self.logger.info(f"Problem visualizations saved: {viz_output_path}, {detailed_viz_path}")
+                # Add description
+                if category in problem_categories:
+                    description = problem_categories[category]['description']
+                    plt.text(max(counts)*0.02, bar.get_y() + bar.get_height()/2,
+                           f'{description}', va='center', fontsize=10, alpha=0.7)
+            
+            plt.grid(True, alpha=0.3, axis='x')
+            plt.tight_layout()
+            
+            detailed_viz_path = f"{self.output_dir}/problem_breakdown_detailed_{app_name.lower().replace(' ', '_')}.png"
+            plt.savefig(detailed_viz_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            
+            self.logger.info(f"Problem visualizations saved: {dashboard_path}, {detailed_viz_path}")
             
         except Exception as e:
             self.logger.error(f"Error creating problem visualizations: {e}")
