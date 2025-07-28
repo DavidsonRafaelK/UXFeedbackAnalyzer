@@ -1,12 +1,14 @@
 {
-  "total_reviews": 2368,
+  "total_reviews_analyzed": 1656,
+  "total_reviews_original": 2368,
+  "filtering_efficiency": "69.9%",
   "sentiment_distribution": {
-    "Negative": 1325,
-    "Positive": 980,
-    "Neutral": 63
+    "Negative": 1006,
+    "Positive": 613,
+    "Neutral": 37
   },
-  "average_confidence": 0.74453125,
-  "positive_percentage": 41.38513513513514,
-  "negative_percentage": 55.954391891891895,
-  "neutral_percentage": 2.660472972972973
+  "average_confidence": 0.7466787439613527,
+  "positive_percentage": 37.01690821256038,
+  "negative_percentage": 60.7487922705314,
+  "neutral_percentage": 2.2342995169082123
 }

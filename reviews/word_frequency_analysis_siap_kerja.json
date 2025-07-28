@@ -1,214 +1,214 @@
 {
   "app_name": "SIAP Kerja",
-  "total_words": 22185,
-  "unique_words": 2927,
-  "vocabulary_richness": 0.13193599278791976,
+  "total_words": 14657,
+  "unique_words": 2202,
+  "vocabulary_richness": 0.1502353824111346,
   "most_common_word": [
     "kerja",
-    788
+    636
   ],
-  "average_word_frequency": 7.579432866416126,
+  "average_word_frequency": 6.65622161671208,
   "median_word_frequency": 1.0,
   "top_50_words": [
     [
       "kerja",
-      788
-    ],
-    [
-      "nya",
-      415
+      636
     ],
     [
       "bantu",
-      387
+      304
     ],
     [
-      "mau",
-      343
+      "nya",
+      293
     ],
     [
       "cari",
-      296
-    ],
-    [
-      "apk",
-      289
-    ],
-    [
-      "daftar",
-      289
-    ],
-    [
-      "lowong",
       232
     ],
     [
-      "banyak",
-      219
+      "mau",
+      228
+    ],
+    [
+      "lowong",
+      195
+    ],
+    [
+      "daftar",
+      192
+    ],
+    [
+      "apk",
+      186
     ],
     [
       "aplikasi",
-      217
+      171
     ],
     [
-      "masuk",
-      203
-    ],
-    [
-      "malah",
-      194
+      "banyak",
+      166
     ],
     [
       "mudah",
-      180
-    ],
-    [
-      "otp",
-      168
-    ],
-    [
-      "padahal",
-      163
+      133
     ],
     [
       "kode",
-      160
-    ],
-    [
-      "siap",
-      159
-    ],
-    [
-      "susah",
-      154
-    ],
-    [
-      "perintah",
-      147
-    ],
-    [
-      "bikin",
-      146
-    ],
-    [
-      "aku",
-      145
-    ],
-    [
-      "latih",
-      142
-    ],
-    [
-      "akun",
-      141
-    ],
-    [
-      "sama",
-      141
-    ],
-    [
-      "baik",
-      139
-    ],
-    [
-      "klaim",
-      134
-    ],
-    [
-      "buka",
       132
     ],
     [
-      "jkp",
+      "otp",
       129
     ],
     [
-      "guna",
-      127
+      "masuk",
+      128
     ],
     [
-      "siapkerja",
+      "siap",
       126
     ],
     [
+      "aku",
+      124
+    ],
+    [
+      "malah",
+      119
+    ],
+    [
+      "susah",
+      117
+    ],
+    [
+      "siapkerja",
+      108
+    ],
+    [
+      "padahal",
+      107
+    ],
+    [
       "info",
-      123
+      101
     ],
     [
-      "manfaat",
-      111
-    ],
-    [
-      "jelas",
-      110
-    ],
-    [
-      "terimakasih",
-      105
-    ],
-    [
-      "pas",
-      103
-    ],
-    [
-      "verifikasi",
-      102
-    ],
-    [
-      "kasih",
-      99
-    ],
-    [
-      "sulit",
+      "akun",
       97
     ],
     [
-      "email",
-      97
-    ],
-    [
-      "data",
-      97
-    ],
-    [
-      "terima",
-      97
-    ],
-    [
-      "lama",
+      "perintah",
       93
     ],
     [
-      "login",
+      "baik",
+      92
+    ],
+    [
+      "bikin",
+      92
+    ],
+    [
+      "sama",
+      89
+    ],
+    [
+      "latih",
+      88
+    ],
+    [
+      "terimakasih",
+      88
+    ],
+    [
+      "klaim",
       87
     ],
     [
-      "baru",
-      87
-    ],
-    [
-      "sesuai",
+      "manfaat",
       86
     ],
     [
-      "kirim",
+      "buka",
+      86
+    ],
+    [
+      "jkp",
       83
     ],
     [
-      "orang",
-      82
-    ],
-    [
-      "web",
+      "terima",
       81
     ],
     [
+      "kasih",
+      78
+    ],
+    [
+      "jelas",
+      76
+    ],
+    [
+      "sulit",
+      70
+    ],
+    [
+      "lama",
+      70
+    ],
+    [
+      "verifikasi",
+      69
+    ],
+    [
+      "login",
+      66
+    ],
+    [
+      "pas",
+      64
+    ],
+    [
+      "data",
+      64
+    ],
+    [
+      "kirim",
+      63
+    ],
+    [
+      "guna",
+      63
+    ],
+    [
+      "sesuai",
+      63
+    ],
+    [
       "nik",
-      80
+      62
+    ],
+    [
+      "fitur",
+      61
     ],
     [
       "isi",
-      77
+      60
+    ],
+    [
+      "email",
+      53
+    ],
+    [
+      "error",
+      53
+    ],
+    [
+      "lengkap",
+      53
     ]
   ]
 }

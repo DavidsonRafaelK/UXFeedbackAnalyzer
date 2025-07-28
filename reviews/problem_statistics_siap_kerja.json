@@ -1,166 +1,172 @@
 {
   "app_name": "SIAP Kerja",
-  "analysis_date": "2025-07-28T13:32:27.812894",
-  "total_reviews_analyzed": 2368,
-  "low_rated_reviews": 1503,
-  "problem_detection_rate": 63.47128378378378,
+  "analysis_date": "2025-07-28T13:49:03.543697",
+  "total_reviews_original": 2368,
+  "total_reviews_analyzed": 1656,
+  "low_rated_reviews": 1076,
+  "data_quality_metrics": {
+    "filter_efficiency": "69.9%",
+    "meaningful_review_rate": "69.9%",
+    "problem_detection_coverage": "65.0%"
+  },
+  "problem_detection_rate": 45.439189189189186,
   "category_distribution": {
     "Login_Authentication": {
-      "count": 455,
-      "percentage": 19.21,
+      "count": 330,
+      "percentage": 19.93,
       "description": "Masalah login, autentikasi, dan akses akun"
     },
     "Performance_Speed": {
-      "count": 352,
-      "percentage": 14.86,
+      "count": 242,
+      "percentage": 14.61,
       "description": "Masalah performa dan kecepatan aplikasi"
     },
     "Crashes_Errors": {
-      "count": 197,
-      "percentage": 8.32,
+      "count": 139,
+      "percentage": 8.39,
       "description": "Aplikasi crash, error, atau berhenti bekerja"
     },
     "Network_Connection": {
-      "count": 157,
-      "percentage": 6.63,
+      "count": 107,
+      "percentage": 6.46,
       "description": "Masalah koneksi internet dan jaringan"
     },
     "User_Interface": {
-      "count": 178,
-      "percentage": 7.52,
+      "count": 117,
+      "percentage": 7.07,
       "description": "Masalah tampilan dan antarmuka pengguna"
     },
     "Features_Functionality": {
-      "count": 172,
-      "percentage": 7.26,
+      "count": 115,
+      "percentage": 6.94,
       "description": "Masalah fitur dan fungsi aplikasi"
     },
     "Data_Sync": {
-      "count": 105,
-      "percentage": 4.43,
+      "count": 72,
+      "percentage": 4.35,
       "description": "Masalah sinkronisasi dan kehilangan data"
     },
     "Payment_Transaction": {
-      "count": 45,
-      "percentage": 1.9,
+      "count": 22,
+      "percentage": 1.33,
       "description": "Masalah pembayaran dan transaksi"
     },
     "Notification_Alerts": {
-      "count": 9,
-      "percentage": 0.38,
+      "count": 7,
+      "percentage": 0.42,
       "description": "Masalah notifikasi dan peringatan"
     },
     "Customer_Service": {
-      "count": 80,
-      "percentage": 3.38,
+      "count": 44,
+      "percentage": 2.66,
       "description": "Masalah layanan pelanggan dan dukungan"
     },
     "Security_Privacy": {
-      "count": 41,
-      "percentage": 1.73,
+      "count": 27,
+      "percentage": 1.63,
       "description": "Masalah keamanan dan privasi"
     },
     "Installation_Update": {
-      "count": 90,
-      "percentage": 3.8,
+      "count": 0,
+      "percentage": 0.0,
       "description": "Masalah instalasi dan pembaruan aplikasi"
     },
     "Registration_Verification": {
-      "count": 342,
-      "percentage": 14.44,
+      "count": 228,
+      "percentage": 13.77,
       "description": "Masalah pendaftaran dan verifikasi akun"
     },
     "Search_Filter": {
-      "count": 66,
-      "percentage": 2.79,
+      "count": 39,
+      "percentage": 2.36,
       "description": "Masalah pencarian dan filter"
     },
     "Content_Information": {
-      "count": 24,
-      "percentage": 1.01,
+      "count": 13,
+      "percentage": 0.79,
       "description": "Masalah konten dan informasi"
     },
     "Location_GPS": {
-      "count": 91,
-      "percentage": 3.84,
+      "count": 57,
+      "percentage": 3.44,
       "description": "Masalah lokasi dan GPS"
     },
     "File_Document": {
-      "count": 113,
-      "percentage": 4.77,
+      "count": 34,
+      "percentage": 2.05,
       "description": "Masalah file dan dokumen"
     },
     "Language_Text": {
-      "count": 8,
-      "percentage": 0.34,
+      "count": 4,
+      "percentage": 0.24,
       "description": "Masalah bahasa dan teks"
     },
     "Other_Issues": {
-      "count": 347,
-      "percentage": 14.65,
+      "count": 247,
+      "percentage": 14.92,
       "description": "Masalah lainnya"
     }
   },
   "top_problems": [
     {
       "category": "Login_Authentication",
-      "count": 455,
-      "percentage": 19.21,
+      "count": 330,
+      "percentage": 19.93,
       "description": "Masalah login, autentikasi, dan akses akun"
     },
     {
-      "category": "Performance_Speed",
-      "count": 352,
-      "percentage": 14.86,
-      "description": "Masalah performa dan kecepatan aplikasi"
-    },
-    {
       "category": "Other_Issues",
-      "count": 347,
-      "percentage": 14.65,
+      "count": 247,
+      "percentage": 14.92,
       "description": "Masalah lainnya"
     },
     {
+      "category": "Performance_Speed",
+      "count": 242,
+      "percentage": 14.61,
+      "description": "Masalah performa dan kecepatan aplikasi"
+    },
+    {
       "category": "Registration_Verification",
-      "count": 342,
-      "percentage": 14.44,
+      "count": 228,
+      "percentage": 13.77,
       "description": "Masalah pendaftaran dan verifikasi akun"
     },
     {
       "category": "Crashes_Errors",
-      "count": 197,
-      "percentage": 8.32,
+      "count": 139,
+      "percentage": 8.39,
       "description": "Aplikasi crash, error, atau berhenti bekerja"
     },
     {
       "category": "User_Interface",
-      "count": 178,
-      "percentage": 7.52,
+      "count": 117,
+      "percentage": 7.07,
       "description": "Masalah tampilan dan antarmuka pengguna"
     },
     {
       "category": "Features_Functionality",
-      "count": 172,
-      "percentage": 7.26,
+      "count": 115,
+      "percentage": 6.94,
       "description": "Masalah fitur dan fungsi aplikasi"
     },
     {
       "category": "Network_Connection",
-      "count": 157,
-      "percentage": 6.63,
+      "count": 107,
+      "percentage": 6.46,
       "description": "Masalah koneksi internet dan jaringan"
     },
     {
-      "category": "File_Document",
-      "count": 113,
-      "percentage": 4.77,
-      "description": "Masalah file dan dokumen"
+      "category": "Data_Sync",
+      "count": 72,
+      "percentage": 4.35,
+      "description": "Masalah sinkronisasi dan kehilangan data"
     },
     {
-      "category": "Data_Sync",
-      "count": 105,
-      "percentage": 4.43,
-      "description": "Masalah sinkronisasi dan kehilangan data"
+      "category": "Location_GPS",
+      "count": 57,
+      "percentage": 3.44,
+      "description": "Masalah lokasi dan GPS"
     }
   ],
   "problem_severity": "High"

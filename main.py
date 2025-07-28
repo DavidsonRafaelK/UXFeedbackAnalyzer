@@ -169,36 +169,270 @@ class ReviewProcessor:
         }
         self.stopwords.update(additional_stopwords)
 
+    def is_relevant_review(self, text: str, score: int) -> bool:
+        """Check if review contains meaningful content and is relevant for analysis"""
+        if not text or len(text.strip()) < 10:
+            return False
+            
+        # Convert to lowercase for checking
+        text_lower = text.lower().strip()
+        
+        # Filter out spam/irrelevant patterns
+        spam_patterns = [
+            # Generic/meaningless comments
+            r'^(good|bad|ok|oke|bagus|jelek|mantap|keren)$',
+            r'^(nice|cool|great|awesome|terrible|awful)$',
+            r'^(👍|👎|⭐|🌟|😊|😃|😄|😁|😆|😍|🥰|😘|😗|😙|😚|☺️|😊|😉|😌|😍|🥰|😘|😗|😙|😚|☺️|😊|😉|😌)$',
+            r'^(like|love|hate|suka|benci)$',
+            r'^(ya|iya|tidak|gak|ga|nggak|enggak)$',
+            
+            # Repetitive characters (spam)
+            r'(.)\1{5,}',  # Same character repeated 6+ times
+            r'^[a-z]{1,3}$',  # Very short meaningless words
+            
+            # Just numbers or symbols
+            r'^[\d\s\-\+\*\/\=\(\)\[\]\.]+$',
+            r'^[^\w\s]*$',
+            
+            # App store navigation text
+            r'(install|download|update|uninstall)',
+            r'(play store|app store|google play)',
+            
+            # Testing or placeholder text
+            r'test|testing|tes|coba|cobain',
+            r'asdf|qwerty|abcd|1234',
+            r'lorem ipsum',
+            
+            # Pure emotional expressions without context
+            r'^(haha|wkwk|kwkw|hehe|hihi|huhu|hoho)+$',
+            r'^(lol|rofl|lmao|omg|wtf)+$',
+            
+            # Requests for contact/social media
+            r'(follow|subscribe|like dan subscribe)',
+            r'(instagram|ig|tiktok|youtube|fb|facebook)',
+            r'(wa|whatsapp|telegram|line)',
+            
+            # Generic ratings without explanation
+            r'^[1-5]\s*(star|bintang|⭐)s?\s*$',
+            r'^rating\s*[1-5]$',
+        ]
+        
+        for pattern in spam_patterns:
+            if re.search(pattern, text_lower):
+                return False
+        
+        # Filter out reviews that are just punctuation or emojis
+        clean_text = re.sub(r'[^\w\s]', '', text_lower)
+        if len(clean_text.strip()) < 5:
+            return False
+        
+        # Filter out reviews with too many repeated words (likely spam)
+        words = clean_text.split()
+        if len(words) > 1:
+            word_counts = {}
+            for word in words:
+                word_counts[word] = word_counts.get(word, 0) + 1
+            
+            # If any word appears more than 70% of the time, likely spam
+            max_word_frequency = max(word_counts.values()) / len(words)
+            if max_word_frequency > 0.7:
+                return False
+        
+        # Check for meaningful content keywords (Indonesian & English)
+        meaningful_keywords = {
+            # App functionality
+            'aplikasi', 'app', 'fitur', 'feature', 'fungsi', 'function',
+            'interface', 'tampilan', 'design', 'layout', 'menu',
+            
+            # Performance
+            'cepat', 'lambat', 'slow', 'fast', 'lemot', 'lag', 'loading',
+            'crash', 'error', 'bug', 'rusak', 'broken', 'hang', 'freeze',
+            
+            # User experience
+            'mudah', 'sulit', 'easy', 'difficult', 'simple', 'complicated',
+            'user friendly', 'convenient', 'praktis', 'ribet',
+            
+            # Content/service quality
+            'berguna', 'useful', 'helpful', 'bermanfaat', 'informatif',
+            'akurat', 'accurate', 'terbaru', 'update', 'lengkap', 'complete',
+            
+            # Problems/issues
+            'masalah', 'problem', 'issue', 'kendala', 'gangguan', 'trouble',
+            'tidak bisa', 'gabisa', 'gagal', 'failed', 'error',
+            
+            # Specific app features (common)
+            'login', 'register', 'daftar', 'masuk', 'keluar', 'logout',
+            'search', 'cari', 'filter', 'sort', 'kategori', 'category',
+            'notification', 'notifikasi', 'pesan', 'message',
+            'profile', 'profil', 'account', 'akun', 'setting', 'pengaturan',
+        }
+        
+        # Check if review contains at least one meaningful keyword
+        has_meaningful_content = any(keyword in text_lower for keyword in meaningful_keywords)
+        
+        # For very short reviews, require meaningful keywords
+        if len(words) <= 3 and not has_meaningful_content:
+            return False
+        
+        # For longer reviews, be more lenient but still filter obvious spam
+        if len(words) > 3:
+            # Check for reasonable word-to-character ratio (detect gibberish)
+            avg_word_length = len(clean_text) / len(words) if words else 0
+            if avg_word_length < 2 or avg_word_length > 20:  # Too short or too long words
+                return False
+            
+            return True
+        
+        return has_meaningful_content
+
     def preprocess_text(self, text: str) -> str:
-        """Enhanced text preprocessing"""
+        """Enhanced text preprocessing with spam and irrelevant content filtering"""
         if not text:
             return ""
-            
-        # Convert to lowercase and remove special characters
-        text = re.sub(r'[^\w\s]', ' ', text.lower())
-        # Remove numbers
-        text = re.sub(r'\d+', '', text)
-        # Remove extra whitespace
+        
+        # First check if the review is relevant
+        # (We'll use this in preprocess_reviews, but basic cleaning here)
+        
+        # Convert to lowercase
+        text = text.lower()
+        
+        # Remove URLs
+        text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
+        
+        # Remove email addresses
+        text = re.sub(r'\S+@\S+', '', text)
+        
+        # Remove phone numbers
+        text = re.sub(r'(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}', '', text)
+        
+        # Remove social media handles
+        text = re.sub(r'@\w+', '', text)
+        text = re.sub(r'#\w+', '', text)
+        
+        # Remove excessive punctuation
+        text = re.sub(r'[!]{2,}', '!', text)
+        text = re.sub(r'[?]{2,}', '?', text)
+        text = re.sub(r'[.]{2,}', '.', text)
+        
+        # Remove special characters but keep Indonesian characters
+        text = re.sub(r'[^\w\s]', ' ', text)
+        
+        # Remove numbers (but keep if they're part of version numbers or ratings)
+        text = re.sub(r'\b\d+\b', '', text)
+        
+        # Remove excessive whitespace
         text = re.sub(r'\s+', ' ', text).strip()
         
-        # Remove stopwords
-        words = [word for word in text.split() if word not in self.stopwords and len(word) > 2]
+        # Remove stopwords and short words
+        words = []
+        for word in text.split():
+            if (word not in self.stopwords and 
+                len(word) > 2 and 
+                not word.isdigit() and
+                not re.match(r'^[a-z]{1,2}$', word)):  # Remove very short words
+                words.append(word)
+        
+        if not words:
+            return ""
         
         # Stemming
         stemmed_text = self.stemmer.stem(' '.join(words))
         
+        # Final cleanup
+        stemmed_text = re.sub(r'\s+', ' ', stemmed_text).strip()
+        
         return stemmed_text
 
     def preprocess_reviews(self) -> List[str]:
-        """Preprocess all review contents"""
+        """Preprocess all review contents with enhanced filtering"""
         processed_reviews = []
-        for review in self.reviews:
-            content = review.get('content', '')
-            processed_content = self.preprocess_text(content)
-            if processed_content:  # Only add non-empty processed content
-                processed_reviews.append(processed_content)
+        total_reviews = len(self.reviews)
+        filtered_out = {
+            'empty_content': 0,
+            'too_short': 0,
+            'spam_detected': 0,
+            'irrelevant': 0,
+            'processing_failed': 0
+        }
         
-        self.logger.info(f"Processed {len(processed_reviews)} reviews out of {len(self.reviews)}")
+        for i, review in enumerate(self.reviews):
+            try:
+                content = review.get('content', '')
+                score = review.get('score', 5)
+                
+                # Skip empty content
+                if not content or not content.strip():
+                    filtered_out['empty_content'] += 1
+                    continue
+                
+                # Skip very short content
+                if len(content.strip()) < 10:
+                    filtered_out['too_short'] += 1
+                    continue
+                
+                # Check if review is relevant and not spam
+                if not self.is_relevant_review(content, score):
+                    filtered_out['spam_detected'] += 1
+                    continue
+                
+                # Preprocess the text
+                processed_content = self.preprocess_text(content)
+                
+                # Only add if preprocessing resulted in meaningful content
+                if processed_content and len(processed_content.split()) >= 2:
+                    processed_reviews.append(processed_content)
+                else:
+                    filtered_out['irrelevant'] += 1
+                    
+            except Exception as e:
+                filtered_out['processing_failed'] += 1
+                self.logger.warning(f"Failed to process review {i}: {e}")
+                continue
+        
+        # Log filtering statistics
+        total_filtered = sum(filtered_out.values())
+        retention_rate = ((total_reviews - total_filtered) / total_reviews * 100) if total_reviews > 0 else 0
+        
+        self.logger.info(f"Review filtering completed:")
+        self.logger.info(f"  - Total reviews: {total_reviews}")
+        self.logger.info(f"  - Processed reviews: {len(processed_reviews)}")
+        self.logger.info(f"  - Retention rate: {retention_rate:.1f}%")
+        self.logger.info(f"  - Filtered out: {total_filtered}")
+        for reason, count in filtered_out.items():
+            if count > 0:
+                self.logger.info(f"    • {reason}: {count}")
+        
+        # Save filtering report
+        filtering_report = {
+            'total_reviews': total_reviews,
+            'processed_reviews': len(processed_reviews),
+            'retention_rate': retention_rate,
+            'filtered_out': filtered_out,
+            'filtering_reasons': {
+                'empty_content': 'Reviews with no content',
+                'too_short': 'Reviews shorter than 10 characters',
+                'spam_detected': 'Spam or irrelevant content detected',
+                'irrelevant': 'No meaningful content after preprocessing',
+                'processing_failed': 'Technical processing errors'
+            }
+        }
+        
+        try:
+            with open(f"{self.output_dir}/filtering_report.json", 'w', encoding='utf-8') as f:
+                json.dump(filtering_report, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            self.logger.warning(f"Could not save filtering report: {e}")
+        
+        print(f"\n🧹 DATA CLEANING SUMMARY")
+        print("=" * 40)
+        print(f"Original reviews: {total_reviews:,}")
+        print(f"Clean reviews: {len(processed_reviews):,}")
+        print(f"Retention rate: {retention_rate:.1f}%")
+        print(f"Removed spam/irrelevant: {filtered_out['spam_detected']:,}")
+        print(f"Removed too short: {filtered_out['too_short']:,}")
+        print(f"Removed empty: {filtered_out['empty_content']:,}")
+        print("=" * 40)
+        
         return processed_reviews
     
     def generate_wordcloud(self, processed_reviews: List[str], app_name: str = "app"):
@@ -318,19 +552,30 @@ class ReviewProcessor:
                 self.logger.error(f"Fallback wordcloud also failed: {fallback_error}")
     
     def sentiment_analysis(self, app_name: str = "app"):
-        """Enhanced sentiment analysis with fallback options"""
+        """Enhanced sentiment analysis with fallback options and better data filtering"""
         if not self.reviews:
             self.logger.warning("No reviews for sentiment analysis")
             return
             
         try:
-            # Try multiple sentiment models with fallbacks
-            contents = [review.get('content', '') for review in self.reviews if review.get('content')]
-            if not contents:
-                self.logger.warning("No review contents for sentiment analysis")
+            # Filter reviews for sentiment analysis
+            filtered_reviews = []
+            for review in self.reviews:
+                content = review.get('content', '')
+                score = review.get('score', 5)
+                
+                # Only analyze reviews with meaningful content
+                if content and self.is_relevant_review(content, score):
+                    filtered_reviews.append(review)
+            
+            if not filtered_reviews:
+                self.logger.warning("No relevant reviews found for sentiment analysis after filtering")
                 return
             
+            contents = [review.get('content', '') for review in filtered_reviews]
             sentiment_data = []
+            
+            self.logger.info(f"Performing sentiment analysis on {len(filtered_reviews)} filtered reviews (from {len(self.reviews)} total)")
             
             # Method 1: Try advanced transformer model
             try:
@@ -368,46 +613,68 @@ class ReviewProcessor:
                             'content': contents[i][:100] + '...' if len(contents[i]) > 100 else contents[i],
                             'sentiment': best_sentiment['label'],
                             'confidence': best_sentiment['score'],
-                            'score': self.reviews[i].get('score', 0)
+                            'score': filtered_reviews[i].get('score', 0),
+                            'is_filtered': False
                         })
                         
             except Exception as transformer_error:
                 self.logger.warning(f"Advanced sentiment analysis failed: {transformer_error}")
                 
-                # Method 2: Simple rule-based sentiment analysis as fallback
-                self.logger.info("Using rule-based sentiment analysis as fallback")
+                # Method 2: Enhanced rule-based sentiment analysis as fallback
+                self.logger.info("Using enhanced rule-based sentiment analysis as fallback")
                 
                 positive_words = {
                     'bagus', 'baik', 'mantap', 'keren', 'excellent', 'good', 'great', 'amazing', 
                     'perfect', 'love', 'like', 'recommended', 'helpful', 'useful', 'fantastic',
-                    'suka', 'senang', 'puas', 'memuaskan', 'terbaik', 'hebat', 'luar biasa'
+                    'suka', 'senang', 'puas', 'memuaskan', 'terbaik', 'hebat', 'luar biasa',
+                    'mudah', 'cepat', 'simple', 'user friendly', 'praktis', 'canggih',
+                    'smooth', 'lancar', 'stabil', 'reliable', 'akurat', 'lengkap', 'update'
                 }
                 
                 negative_words = {
                     'buruk', 'jelek', 'bad', 'terrible', 'awful', 'hate', 'worst', 'useless',
                     'broken', 'error', 'bug', 'crash', 'slow', 'lambat', 'lemot', 'rusak',
-                    'gagal', 'tidak bisa', 'susah', 'sulit', 'kecewa', 'disappointed'
+                    'gagal', 'tidak bisa', 'susah', 'sulit', 'kecewa', 'disappointed',
+                    'hang', 'freeze', 'lag', 'loading', 'ribet', 'complicated', 'confusing',
+                    'spam', 'iklan', 'ads', 'force close', 'logout', 'stuck', 'macet'
                 }
                 
                 for i, content in enumerate(contents):
                     content_lower = content.lower()
                     
-                    # Count positive and negative words
-                    pos_count = sum(1 for word in positive_words if word in content_lower)
-                    neg_count = sum(1 for word in negative_words if word in content_lower)
+                    # Count positive and negative words with weights
+                    pos_score = 0
+                    neg_score = 0
+                    
+                    for word in positive_words:
+                        count = content_lower.count(word)
+                        if count > 0:
+                            pos_score += count * (2 if word in ['excellent', 'perfect', 'amazing', 'fantastic'] else 1)
+                    
+                    for word in negative_words:
+                        count = content_lower.count(word)
+                        if count > 0:
+                            neg_score += count * (2 if word in ['terrible', 'awful', 'worst', 'hate'] else 1)
                     
                     # Determine sentiment based on review score and word counts
-                    review_score = self.reviews[i].get('score', 3) if i < len(self.reviews) else 3
+                    review_score = filtered_reviews[i].get('score', 3) if i < len(filtered_reviews) else 3
                     
-                    if review_score >= 4 or pos_count > neg_count:
+                    # Enhanced logic for sentiment determination
+                    if review_score >= 4 and pos_score >= neg_score:
                         sentiment = 'LABEL_2'  # Positive
-                        confidence = 0.7 + (pos_count * 0.1)
-                    elif review_score <= 2 or neg_count > pos_count:
+                        confidence = 0.7 + min(pos_score * 0.1, 0.25)
+                    elif review_score <= 2 and neg_score >= pos_score:
                         sentiment = 'LABEL_0'  # Negative  
-                        confidence = 0.7 + (neg_count * 0.1)
+                        confidence = 0.7 + min(neg_score * 0.1, 0.25)
+                    elif pos_score > neg_score:
+                        sentiment = 'LABEL_2'  # Positive
+                        confidence = 0.6 + min(pos_score * 0.05, 0.2)
+                    elif neg_score > pos_score:
+                        sentiment = 'LABEL_0'  # Negative
+                        confidence = 0.6 + min(neg_score * 0.05, 0.2)
                     else:
                         sentiment = 'LABEL_1'  # Neutral
-                        confidence = 0.6
+                        confidence = 0.5 + abs(review_score - 3) * 0.1
                     
                     confidence = min(confidence, 0.95)  # Cap confidence
                     
@@ -416,7 +683,10 @@ class ReviewProcessor:
                         'content': content[:100] + '...' if len(content) > 100 else content,
                         'sentiment': sentiment,
                         'confidence': confidence,
-                        'score': review_score
+                        'score': review_score,
+                        'is_filtered': False,
+                        'pos_words_found': pos_score,
+                        'neg_words_found': neg_score
                     })
             
             if not sentiment_data:
@@ -440,7 +710,9 @@ class ReviewProcessor:
             }
             
             summary = {
-                'total_reviews': len(df),
+                'total_reviews_analyzed': len(df),
+                'total_reviews_original': len(self.reviews),
+                'filtering_efficiency': f"{(len(filtered_reviews) / len(self.reviews) * 100):.1f}%" if self.reviews else "N/A",
                 'sentiment_distribution': {label_mapping.get(k, k): v for k, v in sentiment_summary.to_dict().items()},
                 'average_confidence': avg_confidence,
                 'positive_percentage': (sentiment_summary.get('LABEL_2', 0) / len(df)) * 100,
@@ -456,6 +728,19 @@ class ReviewProcessor:
             self.create_sentiment_visualizations(df, summary, app_name)
                 
             self.logger.info(f"Sentiment analysis completed and saved to {output_path}")
+            
+            # Print summary
+            print(f"\n💭 SENTIMENT ANALYSIS SUMMARY - {app_name}")
+            print("=" * 50)
+            print(f"Reviews analyzed: {len(df):,} (filtered from {len(self.reviews):,})")
+            print(f"Average confidence: {avg_confidence:.3f}")
+            print(f"Sentiment distribution:")
+            for label, count in sentiment_summary.items():
+                name = label_mapping.get(label, label)
+                percentage = (count / len(df)) * 100
+                print(f"  {name}: {count:,} ({percentage:.1f}%)")
+            print("=" * 50)
+            
             return summary
             
         except Exception as e:
@@ -775,7 +1060,7 @@ class ReviewProcessor:
             return None
 
     def analyze_user_problems(self, app_name: str = "app"):
-        """Comprehensive user problem analysis and categorization"""
+        """Comprehensive user problem analysis and categorization with enhanced data cleaning"""
         if not self.reviews:
             self.logger.warning("No reviews for problem analysis")
             return
@@ -951,7 +1236,17 @@ class ReviewProcessor:
                 }
             }
             
-            # Analyze each review for problems
+            # Filter reviews for problem analysis (only meaningful, low-rated reviews)
+            filtered_reviews = []
+            for review in self.reviews:
+                content = review.get('content', '')
+                score = review.get('score', 5)
+                
+                # Only analyze reviews with meaningful content and low ratings
+                if content and self.is_relevant_review(content, score):
+                    filtered_reviews.append(review)
+            
+            # Analyze each filtered review for problems
             problem_data = []
             category_counts = {category: 0 for category in problem_categories.keys()}
             category_counts['Other_Issues'] = 0
@@ -960,7 +1255,9 @@ class ReviewProcessor:
             # Store "Other Issues" content for further analysis
             other_issues_content = []
             
-            for i, review in enumerate(self.reviews):
+            self.logger.info(f"Analyzing problems in {len(filtered_reviews)} filtered reviews (from {len(self.reviews)} total)")
+            
+            for i, review in enumerate(filtered_reviews):
                 content = review.get('content', '').lower()
                 score = review.get('score', 5)
                 
@@ -998,6 +1295,108 @@ class ReviewProcessor:
                     'keywords_found': problem_keywords_found,
                     'problem_count': len([p for p in detected_problems if p not in ['No_Problem_Detected']])
                 })
+            
+            # Create problem analysis DataFrame
+            df_problems = pd.DataFrame(problem_data)
+            
+            # Save detailed problem analysis
+            output_path = f"{self.output_dir}/problem_analysis_{app_name.lower().replace(' ', '_')}.csv"
+            df_problems.to_csv(output_path, index=False)
+            
+            # Calculate problem statistics
+            total_reviews = len(self.reviews)
+            filtered_count = len(filtered_reviews)
+            low_rated_reviews = sum(1 for r in filtered_reviews if r.get('score', 5) <= 3)
+            
+            problem_stats = {
+                'app_name': app_name,
+                'analysis_date': datetime.now().isoformat(),
+                'total_reviews_original': total_reviews,
+                'total_reviews_analyzed': filtered_count,
+                'low_rated_reviews': low_rated_reviews,
+                'data_quality_metrics': {
+                    'filter_efficiency': f"{(filtered_count / total_reviews * 100):.1f}%" if total_reviews > 0 else "N/A",
+                    'meaningful_review_rate': f"{(filtered_count / total_reviews * 100):.1f}%" if total_reviews > 0 else "N/A",
+                    'problem_detection_coverage': f"{(low_rated_reviews / filtered_count * 100):.1f}%" if filtered_count > 0 else "N/A"
+                },
+                'problem_detection_rate': (low_rated_reviews / total_reviews * 100) if total_reviews > 0 else 0,
+                'category_distribution': {},
+                'top_problems': [],
+                'problem_severity': 'Low'
+            }
+            
+            # Calculate percentages and sort by frequency
+            for category, count in category_counts.items():
+                if category not in ['No_Problem_Detected']:
+                    percentage = (count / filtered_count * 100) if filtered_count > 0 else 0
+                    problem_stats['category_distribution'][category] = {
+                        'count': count,
+                        'percentage': round(percentage, 2),
+                        'description': problem_categories.get(category, {}).get('description', 'Masalah lainnya')
+                    }
+            
+            # Sort problems by frequency
+            sorted_problems = sorted(
+                [(cat, data['count'], data['percentage']) for cat, data in problem_stats['category_distribution'].items()],
+                key=lambda x: x[1], reverse=True
+            )
+            
+            problem_stats['top_problems'] = [
+                {
+                    'category': cat,
+                    'count': count,
+                    'percentage': pct,
+                    'description': problem_categories.get(cat, {}).get('description', 'Masalah lainnya')
+                }
+                for cat, count, pct in sorted_problems[:10]
+            ]
+            
+            # Determine problem severity
+            if problem_stats['problem_detection_rate'] > 30:
+                problem_stats['problem_severity'] = 'High'
+            elif problem_stats['problem_detection_rate'] > 15:
+                problem_stats['problem_severity'] = 'Medium'
+            else:
+                problem_stats['problem_severity'] = 'Low'
+            
+            # Save problem statistics
+            stats_output_path = f"{self.output_dir}/problem_statistics_{app_name.lower().replace(' ', '_')}.json"
+            with open(stats_output_path, 'w', encoding='utf-8') as f:
+                json.dump(problem_stats, f, ensure_ascii=False, indent=2)
+            
+            # Create problem visualization
+            self.create_problem_visualizations(category_counts, problem_categories, app_name)
+            
+            # Analyze "Other Issues" to find unidentified patterns
+            if other_issues_content:
+                self.analyze_other_issues(other_issues_content, app_name)
+            
+            # Print problem analysis summary
+            print(f"\n🚨 USER PROBLEM ANALYSIS - {app_name}")
+            print("=" * 60)
+            print(f"Original Reviews: {total_reviews:,}")
+            print(f"Clean Reviews Analyzed: {filtered_count:,}")
+            print(f"Filter Efficiency: {problem_stats['data_quality_metrics']['filter_efficiency']}")
+            print(f"Low-Rated Reviews (1-3 ⭐): {low_rated_reviews:,}")
+            print(f"Problem Detection Rate: {problem_stats['problem_detection_rate']:.1f}%")
+            print(f"Problem Severity Level: {problem_stats['problem_severity']}")
+            print("\n📊 TOP PROBLEMS IDENTIFIED:")
+            print("-" * 60)
+            
+            for i, problem in enumerate(problem_stats['top_problems'][:10], 1):
+                if problem['count'] > 0:
+                    print(f"{i:2d}. {problem['category'].replace('_', ' '):<25} : {problem['count']:>3} reviews ({problem['percentage']:>5.1f}%)")
+                    print(f"    └─ {problem['description']}")
+                    print()
+            
+            print("=" * 60)
+            
+            self.logger.info(f"Problem analysis completed and saved to {output_path}")
+            return problem_stats
+            
+        except Exception as e:
+            self.logger.error(f"Error in problem analysis: {e}")
+            return None
             
             # Create problem analysis DataFrame
             df_problems = pd.DataFrame(problem_data)

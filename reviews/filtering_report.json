@@ -1,0 +1,19 @@
+{
+  "total_reviews": 2368,
+  "processed_reviews": 1573,
+  "retention_rate": 66.42736486486487,
+  "filtered_out": {
+    "empty_content": 0,
+    "too_short": 183,
+    "spam_detected": 529,
+    "irrelevant": 83,
+    "processing_failed": 0
+  },
+  "filtering_reasons": {
+    "empty_content": "Reviews with no content",
+    "too_short": "Reviews shorter than 10 characters",
+    "spam_detected": "Spam or irrelevant content detected",
+    "irrelevant": "No meaningful content after preprocessing",
+    "processing_failed": "Technical processing errors"
+  }
+}

@@ -1,31 +1,31 @@
 {
   "app_name": "SIAP Kerja",
-  "analysis_date": "2025-07-28T13:32:32.065449",
-  "overall_assessment": "URGENT: Aplikasi mengalami masalah serius dengan tingkat deteksi masalah 63.5%. Diperlukan tindakan segera.",
+  "analysis_date": "2025-07-28T13:49:07.631496",
+  "overall_assessment": "URGENT: Aplikasi mengalami masalah serius dengan tingkat deteksi masalah 45.4%. Diperlukan tindakan segera.",
   "priority_actions": [
     {
       "category": "Login_Authentication",
       "action": "Perbaiki sistem autentikasi dan reset password",
       "urgency": "HIGH",
-      "affected_percentage": 19.21
+      "affected_percentage": 19.93
     },
     {
       "category": "Performance_Speed",
       "action": "Optimasi kode dan database queries",
       "urgency": "HIGH",
-      "affected_percentage": 14.86
+      "affected_percentage": 14.61
     },
     {
       "category": "Crashes_Errors",
       "action": "Debug dan fix critical bugs",
       "urgency": "CRITICAL",
-      "affected_percentage": 8.32
+      "affected_percentage": 8.39
     }
   ],
   "detailed_recommendations": {
     "Login_Authentication": {
       "problem_description": "Masalah login, autentikasi, dan akses akun",
-      "affected_users": "455 reviews (19.21%)",
+      "affected_users": "330 reviews (19.93%)",
       "priority": "HIGH",
       "recommended_actions": [
         "Perbaiki sistem autentikasi dan reset password",
@@ -36,7 +36,7 @@
     },
     "Performance_Speed": {
       "problem_description": "Masalah performa dan kecepatan aplikasi",
-      "affected_users": "352 reviews (14.86%)",
+      "affected_users": "242 reviews (14.61%)",
       "priority": "HIGH",
       "recommended_actions": [
         "Optimasi kode dan database queries",
@@ -47,7 +47,7 @@
     },
     "Crashes_Errors": {
       "problem_description": "Aplikasi crash, error, atau berhenti bekerja",
-      "affected_users": "197 reviews (8.32%)",
+      "affected_users": "139 reviews (8.39%)",
       "priority": "CRITICAL",
       "recommended_actions": [
         "Debug dan fix critical bugs",
