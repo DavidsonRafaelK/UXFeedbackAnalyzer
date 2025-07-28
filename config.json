@@ -1,0 +1,24 @@
+{
+  "apps": [
+    {
+      "id": "id.go.kemnaker.siapkerja",
+      "name": "SIAP Kerja"
+    }
+  ],
+  "settings": {
+    "max_reviews_per_star": 50,
+    "language": "id",
+    "country": "id",
+    "sleep_milliseconds": 100,
+    "output_directory": "reviews",
+    "topic_modeling": {
+      "n_topics": 5,
+      "min_reviews_for_topics": 10
+    },
+    "visualization": {
+      "wordcloud_width": 1200,
+      "wordcloud_height": 600,
+      "figure_dpi": 300
+    }
+  }
+}

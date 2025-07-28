@@ -1,0 +1,32 @@
+{
+  "app_name": "SIAP Kerja",
+  "analysis_date": "2025-07-28T13:04:06.304740",
+  "total_reviews": 2368,
+  "average_score": 2.59,
+  "score_distribution": {
+    "1_star": 1254,
+    "1_star_percentage": 52.95608108108109,
+    "2_star": 134,
+    "2_star_percentage": 5.658783783783783,
+    "3_star": 115,
+    "3_star_percentage": 4.856418918918918,
+    "4_star": 64,
+    "4_star_percentage": 2.7027027027027026,
+    "5_star": 801,
+    "5_star_percentage": 33.826013513513516
+  },
+  "content_stats": {
+    "reviews_with_content": 2368,
+    "average_content_length_words": 15.05
+  },
+  "date_range": {
+    "earliest_review": "2022-10-20T15:48:29",
+    "latest_review": "2025-07-26T14:16:06",
+    "span_days": 1009
+  },
+  "engagement_stats": {
+    "total_thumbs_up": 4774,
+    "avg_thumbs_up": 2.0160472972972974,
+    "reviews_with_replies": 0
+  }
+}

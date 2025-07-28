@@ -1,0 +1,137 @@
+{
+  "app_name": "SIAP Kerja",
+  "analysis_date": "2025-07-28T13:04:03.007410",
+  "total_reviews_analyzed": 2368,
+  "low_rated_reviews": 1503,
+  "problem_detection_rate": 63.47128378378378,
+  "category_distribution": {
+    "Login_Authentication": {
+      "count": 317,
+      "percentage": 13.39,
+      "description": "Masalah login, autentikasi, dan akses akun"
+    },
+    "Performance_Speed": {
+      "count": 254,
+      "percentage": 10.73,
+      "description": "Masalah performa dan kecepatan aplikasi"
+    },
+    "Crashes_Errors": {
+      "count": 193,
+      "percentage": 8.15,
+      "description": "Aplikasi crash, error, atau berhenti bekerja"
+    },
+    "Network_Connection": {
+      "count": 44,
+      "percentage": 1.86,
+      "description": "Masalah koneksi internet dan jaringan"
+    },
+    "User_Interface": {
+      "count": 106,
+      "percentage": 4.48,
+      "description": "Masalah tampilan dan antarmuka pengguna"
+    },
+    "Features_Functionality": {
+      "count": 166,
+      "percentage": 7.01,
+      "description": "Masalah fitur dan fungsi aplikasi"
+    },
+    "Data_Sync": {
+      "count": 97,
+      "percentage": 4.1,
+      "description": "Masalah sinkronisasi dan kehilangan data"
+    },
+    "Payment_Transaction": {
+      "count": 15,
+      "percentage": 0.63,
+      "description": "Masalah pembayaran dan transaksi"
+    },
+    "Notification_Alerts": {
+      "count": 9,
+      "percentage": 0.38,
+      "description": "Masalah notifikasi dan peringatan"
+    },
+    "Customer_Service": {
+      "count": 43,
+      "percentage": 1.82,
+      "description": "Masalah layanan pelanggan dan dukungan"
+    },
+    "Security_Privacy": {
+      "count": 5,
+      "percentage": 0.21,
+      "description": "Masalah keamanan dan privasi"
+    },
+    "Installation_Update": {
+      "count": 88,
+      "percentage": 3.72,
+      "description": "Masalah instalasi dan pembaruan aplikasi"
+    },
+    "Other_Issues": {
+      "count": 632,
+      "percentage": 26.69,
+      "description": "Masalah lainnya"
+    }
+  },
+  "top_problems": [
+    {
+      "category": "Other_Issues",
+      "count": 632,
+      "percentage": 26.69,
+      "description": "Masalah lainnya"
+    },
+    {
+      "category": "Login_Authentication",
+      "count": 317,
+      "percentage": 13.39,
+      "description": "Masalah login, autentikasi, dan akses akun"
+    },
+    {
+      "category": "Performance_Speed",
+      "count": 254,
+      "percentage": 10.73,
+      "description": "Masalah performa dan kecepatan aplikasi"
+    },
+    {
+      "category": "Crashes_Errors",
+      "count": 193,
+      "percentage": 8.15,
+      "description": "Aplikasi crash, error, atau berhenti bekerja"
+    },
+    {
+      "category": "Features_Functionality",
+      "count": 166,
+      "percentage": 7.01,
+      "description": "Masalah fitur dan fungsi aplikasi"
+    },
+    {
+      "category": "User_Interface",
+      "count": 106,
+      "percentage": 4.48,
+      "description": "Masalah tampilan dan antarmuka pengguna"
+    },
+    {
+      "category": "Data_Sync",
+      "count": 97,
+      "percentage": 4.1,
+      "description": "Masalah sinkronisasi dan kehilangan data"
+    },
+    {
+      "category": "Installation_Update",
+      "count": 88,
+      "percentage": 3.72,
+      "description": "Masalah instalasi dan pembaruan aplikasi"
+    },
+    {
+      "category": "Network_Connection",
+      "count": 44,
+      "percentage": 1.86,
+      "description": "Masalah koneksi internet dan jaringan"
+    },
+    {
+      "category": "Customer_Service",
+      "count": 43,
+      "percentage": 1.82,
+      "description": "Masalah layanan pelanggan dan dukungan"
+    }
+  ],
+  "problem_severity": "High"
+}
